@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Remix Remix Remix Remix كشف — Kashf 1",
+  "description": "أداة مجانية وذكية تعمل محلياً لفحص الرسائل النصية والروابط المشبوهة وكشف محاولات الاحتيال والتصيد الإلكتروني باللغة العربية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
