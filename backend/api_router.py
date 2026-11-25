@@ -306,6 +306,7 @@ def handle_api_request(
 
         if m == "GET" and norm_path == "/api/saas/tenants":
             enforce_rate_limit(client_ip)
+            require_dev_role(auth_header, ("owner", "editor", "viewer"))
             return list_saas_tenants()
 
         if m == "POST" and norm_path == "/api/saas/tenants":
@@ -370,6 +371,7 @@ def handle_api_request(
             return run_all_evaluations()
 
         if m == "GET" and norm_path == "/api/public-config":
+            enforce_rate_limit(client_ip)
             return get_public_config()
 
         if m == "POST" and norm_path == "/api/dev/bootstrap":
@@ -401,6 +403,7 @@ def handle_api_request(
             )
 
         if m == "GET" and norm_path == "/api/dev/overview":
+            enforce_rate_limit(client_ip)
             return get_dev_overview(require_dev_role(auth_header, ("owner", "editor", "viewer")))
 
         if m == "PUT" and norm_path == "/api/dev/settings":

@@ -210,8 +210,8 @@ class FastApiSingleServerTests(unittest.TestCase):
         self.assertEqual(trending.status_code, 200)
         self.assertGreaterEqual(trending.json()["stats"]["total_reports"], 1)
 
-        # SaaS listing is public demo telemetry; mutations require RBAC (editor/owner create, owner delete)
-        self.assertEqual(self.client.get("/api/saas/tenants").status_code, 200)
+        # SaaS tenant listing & mutations require RBAC (viewer/editor/owner read, editor/owner create, owner delete)
+        self.assertEqual(self.client.get("/api/saas/tenants").status_code, 401)
         self.assertEqual(
             self.client.post(
                 "/api/saas/tenants",
@@ -230,6 +230,13 @@ class FastApiSingleServerTests(unittest.TestCase):
         editor_auth = dev_console.claim_invite(editor_inv["invite_token"], "Ed", "ed@uotechnology.edu.iq", "EditorPass!2025")
         viewer_auth = dev_console.claim_invite(viewer_inv["invite_token"], "Vw", "vw@uotechnology.edu.iq", "ViewerPass!2025")
 
+        self.assertEqual(
+            self.client.get(
+                "/api/saas/tenants",
+                headers={"Authorization": f"Bearer {viewer_auth['token']}"},
+            ).status_code,
+            200,
+        )
         self.assertEqual(
             self.client.post(
                 "/api/saas/tenants",
@@ -414,9 +421,9 @@ class StdlibHttpServerTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(body)["execution_mode"], "blocked_ssrf")
 
-        # SaaS tenant listing (public demo summary) vs RBAC-protected mutations
+        # SaaS tenant listing & mutations require RBAC (viewer/editor/owner read, editor/owner create, owner delete)
         status, _, _ = self._request("GET", "/api/saas/tenants")
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 401)
         status, _, _ = self._request(
             "POST",
             "/api/saas/tenants",
@@ -436,6 +443,13 @@ class StdlibHttpServerTests(unittest.TestCase):
         viewer_auth = dev_console.claim_invite(viewer_inv["invite_token"], "Vw", "vw@uotechnology.edu.iq", "ViewerPass!2025")
 
         status, _, _ = self._request(
+            "GET",
+            "/api/saas/tenants",
+            headers={"Authorization": f"Bearer {viewer_auth['token']}"},
+        )
+        self.assertEqual(status, 200)
+
+        status, _, _ = self._request(
             "POST",
             "/api/saas/tenants",
             {"university_name": "Viewer Uni", "student_count": 1000, "faculty_count": 50},
@@ -451,6 +465,14 @@ class StdlibHttpServerTests(unittest.TestCase):
         )
         self.assertEqual(status, 200)
         tenant_code = json.loads(body)["tenants"][0]["tenant_code"]
+
+        status, _, listed_body = self._request(
+            "GET",
+            "/api/saas/tenants",
+            headers={"Authorization": f"Bearer {viewer_auth['token']}"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(listed_body)["tenants"][0]["tenant_code"], tenant_code)
 
         status, _, _ = self._request(
             "DELETE",
@@ -509,6 +531,8 @@ class StdlibHttpServerTests(unittest.TestCase):
             ("GET", "/api/dashboard", None),
             ("GET", "/api/sandbox/runs", None),
             ("GET", "/api/saas/tenants", None),
+            ("GET", "/api/public-config", None),
+            ("GET", "/api/dev/overview", None),
             ("POST", "/api/quiz/verify", {"id": "q1", "is_scam": True, "lang": "en"}),
         ]:
             status, _, _ = self._request(method_name, path_name, payload_obj)
